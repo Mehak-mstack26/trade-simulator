@@ -1,3 +1,4 @@
+from typing import List, Dict, Tuple, Optional
 import asyncio
 import json
 import time
@@ -5,7 +6,6 @@ import websockets
 import numpy as np
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import List, Dict, Tuple, Optional
 import logging
 
 logger = logging.getLogger(__name__)
@@ -79,7 +79,7 @@ class MarketDataProcessor:
         self.order_books: Dict[str, OrderBook] = {} # Data Structure: Dict for O(1) avg access by symbol
         # Historical data for L2 can be memory intensive. Capped for memory optimization.
         self.historical_data: Dict[str, List[OrderBook]] = {} 
-        self.processing_times: List[float] = [] # Latency Benchmark: stores individual tick processing times
+        self.processing_times_ms: List[float] = [] # Latency Benchmark: stores individual tick processing times
         self.max_historical_L2_ticks = 100 # Memory Optimization: Cap for L2 history per symbol
         self.max_processing_times_entries = 1000 # Memory Optimization: Cap for latency metrics storage
         self.is_connected: bool = False # Network: Track WebSocket connection status
@@ -192,10 +192,10 @@ class MarketDataProcessor:
     def get_average_processing_time(self) -> float:
         # Latency Benchmark: Provides average data processing latency.
         # Thread-safety: list read operations (len, sum) are safe if appends/pops are atomic (which they are).
-        if not self.processing_times: return 0.0
-        return sum(self.processing_times) / len(self.processing_times)
+        if not self.processing_times_ms: return 0.0 # Use _ms
+        return sum(self.processing_times_ms) / len(self.processing_times_ms) # Use _ms
     
-    def get_data_processing_latency_stats(self) -> Dict[str]:
+    def get_data_processing_latency_stats(self) -> Dict[str, float]:
         if not self.processing_times_ms:
             return {
                 "avg_ms": 0.0, "min_ms": 0.0, "max_ms": 0.0, 
